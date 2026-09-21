@@ -8,9 +8,9 @@ import torch
 
 @dataclass
 class QuantizedTensor:
-    q: torch.Tensor          # uint8/int32 integer codes, same logical shape as weight
-    scales: torch.Tensor     # [out_features, n_groups]
-    zeros: torch.Tensor      # [out_features, n_groups]
+    q: torch.Tensor          
+    scales: torch.Tensor    
+    zeros: torch.Tensor     
     bits: int
     group_size: int
     original_shape: Tuple[int, int]
@@ -31,18 +31,7 @@ def affine_quantize_weight(
     group_size: int = 128,
     eps: float = 1e-8,
 ) -> QuantizedTensor:
-    """Group-wise asymmetric affine weight-only quantization.
-
-    For each output row and each contiguous K-dimension group:
-        min   = min(min(w), 0),  max = max(max(w), 0)
-        scale = (max - min) / (2^b - 1)
-        zero  = round(-min / scale)
-        q     = clamp(round(w / scale) + zero, 0, 2^b-1)
-        w_hat = (q - zero) * scale
-
-    The paper states group size 128 and W2/W3/W4 candidates. Scales and
-    zero-points are stored in floating point by the packed runtime.
-    """
+   
     _validate(weight, bits, group_size)
     device = weight.device
     dtype = weight.dtype
@@ -58,17 +47,13 @@ def affine_quantize_weight(
         s = g * group_size
         e = min(in_features, s + group_size)
         w = weight[:, s:e].float()
-        # Extend the range to include 0 (standard asymmetric min-max, as in
-        # GPTQ/AWQ RTN). Without this, a group that is entirely positive or
-        # entirely negative gets its zero-point clamped to 0 or qmax and most
-        # codes saturate. For groups that already span zero this is a no-op.
+        
         w_min = w.amin(dim=1).clamp(max=0.0)
         w_max = w.amax(dim=1).clamp(min=0.0)
         scale = (w_max - w_min) / float(qmax)
-        # Only an all-zero group has zero range now; any scale works there.
+     
         scale = torch.where(scale < eps, torch.ones_like(scale), scale)
-        # Because w_min <= 0 <= w_max, this already lies in [0, qmax];
-        # the clamp only guards against floating-point round-off.
+       
         zero = torch.round(-w_min / scale).clamp_(0, qmax)
         qg = torch.round(w / scale[:, None] + zero[:, None]).clamp_(0, qmax)
 
