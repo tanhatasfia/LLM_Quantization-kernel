@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""Reference TRPS calibration driver for Hugging Face causal LMs.
 
-Calibration data: rows of the chosen dataset split are joined with "\\n\\n",
-tokenized once (no special tokens), and `--samples` windows of exactly
-`--seq-len` tokens are drawn at random start positions (seeded), as in the
-usual GPTQ/AWQ calibration protocol. Use the exact corpus, split and seed
-that produced the reported numbers.
-
-TRPS statistics are pooled over ALL calibration tokens: mean local
-distortion, CVaR over the worst tau fraction of calibration tokens, and mean
-propagated distortion, matching the definitions in Section III-A.
-"""
 import argparse, csv, json, random
 import torch
 from datasets import load_dataset
@@ -47,10 +36,10 @@ torch.manual_seed(a.seed)
 tok = AutoTokenizer.from_pretrained(a.model, use_fast=True)
 model = AutoModelForCausalLM.from_pretrained(a.model, torch_dtype=torch.float16).to(a.device).eval()
 
-# ---- build a concatenated token stream -------------------------------------
+
 ds = load_dataset(a.dataset, a.dataset_config, split=a.split, streaming=True)
 target_tokens = int(a.corpus_token_factor * a.samples * a.seq_len)
-char_budget = target_tokens * 6          # generous chars/token upper bound
+char_budget = target_tokens * 6          
 texts, n_chars = [], 0
 for ex in ds:
     txt = ex.get("text") if isinstance(ex, dict) else None
@@ -73,7 +62,7 @@ if a.samples * win > stream.numel():
     print(f"warning: {a.samples} x {win} tokens exceeds corpus ({stream.numel()}); windows will overlap")
 starts = [random.randint(0, max_start) for _ in range(a.samples)]
 
-# ---- pooled TRPS -----------------------------------------------------------
+
 acc = TRPSAccumulator(a.tau, a.lambda_tail, a.lambda_prop)
 for i, s0 in enumerate(starts, 1):
     ids = stream[s0:s0 + win]
