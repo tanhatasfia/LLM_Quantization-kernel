@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Measure end-to-end prefill+decode request energy for random bitmaps.
 
-Requires both packages:
-  PYTHONPATH=/path/crispybits_quantization:/path/crispybits_kernels
-and a built `crispybits_kernels` CUDA extension.
-"""
 import argparse, json, os
 from pathlib import Path
 import numpy as np
@@ -27,7 +22,7 @@ model=AutoModelForCausalLM.from_pretrained(a.model,torch_dtype=dtype,low_cpu_mem
 bitmaps=np.load(a.bitmaps);tuning=load_tuning(a.tuning_json)
 text=Path(a.prompt_file).read_text() if a.prompt_file else ("The purpose of this calibration request is to measure packed low bit language model inference energy. "*300)
 ids=tok(text,return_tensors="pt",truncation=True,max_length=a.prompt_len).input_ids.to(device)
-# Force exactly prompt_len when text is long enough; otherwise repeat tokens.
+
 if ids.shape[1]<a.prompt_len:
     reps=(a.prompt_len+ids.shape[1]-1)//ids.shape[1];ids=ids.repeat(1,reps)[:,:a.prompt_len]
 else: ids=ids[:,:a.prompt_len]
