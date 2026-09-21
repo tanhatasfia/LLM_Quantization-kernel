@@ -1,11 +1,9 @@
-# CrispyBits
+
 
 Official implementation of **CrispyBits: Packed LLM Quantization Tracks Energy Budget**.
 
 
-## Repository Structure
-
-
+```text
 Crispybits/
 ├── quantization/
 │   ├── crispybits_quant/
@@ -33,25 +31,33 @@ Crispybits/
     │   └── bindings.cpp
     ├── scripts/
     └── tests/
+```
 
+## 1. Installation
 
+### Quantization and Allocation
 
-1. Installation
-Quantization / Allocation
+```bash
 cd Crispybits/quantization
 pip install -r requirements.txt
 export PYTHONPATH=$PWD
-CUDA Kernels
+```
 
+### CUDA Kernels
 
-
+```bash
 cd Crispybits/Kernel
 pip install -r requirements.txt
 pip install -v .
-2. TRPS Calibration
+```
 
 
 
+## 2. TRPS Calibration
+
+
+
+```bash
 cd Crispybits/quantization
 
 python scripts/calibrate_trps.py \
@@ -63,78 +69,88 @@ python scripts/calibrate_trps.py \
     --lambda-tail 0.25 \
     --lambda-prop 0.25 \
     --out trps.csv
+```
 
 
 
-3. Pack W2/W3/W4 Weights
+## 3. Pack W2/W3/W4 Weights
 
-For hardware-energy calibration, all candidate precisions can be packed:
 
+
+```bash
 python scripts/pack_all_precisions.py \
     --model meta-llama/Llama-2-7b-hf \
     --group-size 128 \
     --out packed_llama2_7b
-
-
-4. Sample Mixed-Precision Configurations
+```
 
 
 
-For LLaMA-2 7B:
+## 4. Sample Mixed-Precision Configurations
 
+
+
+Example for LLaMA-2 7B:
+
+```bash
 python scripts/sample_bitmaps.py \
     --blocks 32 \
     --k 700 \
     --out bitmaps.npy
+```
+
+## 5. Fit the Hardware-Energy Surrogate
 
 
 
-
-5. Fit the Hardware-Energy Surrogate
-
-
+```bash
 python scripts/fit_surrogate.py \
     --npz calibration.npz \
     --out energy_surrogate.json
+```
 
 
-
-7. Energy-Constrained Mixed-Precision Allocation
+## 6. Energy-Constrained Mixed-Precision Allocation
 
 
 Example:
 
+```bash
 python scripts/allocate.py \
     --trps-csv trps.csv \
     --surrogate energy_surrogate.json \
     --budget 1098.2 \
     --out allocation.json
+```
 
 
 
+## 7. Kernel Tests and Microbenchmarks
 
+### Run Correctness Tests
 
-6. Kernel Tests and Microbenchmarks
-
-Run correctness tests:
-
+```bash
 cd Crispybits/Kernel
 pytest -q
+```
 
-Example GEMV benchmark:
+### GEMV Microbenchmark
 
+```bash
 python scripts/bench_gemv.py \
     --bits 3 \
     --n 4096 \
     --k 4096 \
     --exhaustive
+```
 
-Example prefill benchmark:
+### Prefill GEMM Microbenchmark
 
+```bash
 python scripts/bench_prefill.py --m 1024
+```
+
+### Decode-Kernel Ablation
 
 
 
-python scripts/ablation_decode.py \
-    --model llama2-7b \
-    --bits 3
