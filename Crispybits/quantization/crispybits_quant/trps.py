@@ -97,34 +97,14 @@ def trps_token_stats(
     eps: float = 1e-8,
     skip_first_tokens: int = 0,
 ) -> Dict[Tuple[int, int], Tuple[torch.Tensor, Optional[torch.Tensor]]]:
-    """Token-level TRPS ingredients for one calibration batch.
-
-    Returns {(block, bits): (d_tokens, p_tokens)} where both are 1-D float32
-    CPU tensors with one entry per calibration token (p_tokens is None for
-    the last block). Pool these across all calibration samples with
-    `TRPSAccumulator` so that the mean and CVaR are taken over *calibration
-    tokens*, as defined in the paper, rather than per sample.
-
-    Strategy:
-      1. Run the full model once to capture the arguments entering every block.
-      2. Re-run only block l with its captured FP input after fake quantizing it.
-      3. Feed both FP and quantized block-l outputs through the next FP block.
-
-    Propagated distortion definition used here:
-        p_l,b,t = ||F_{l+1}(h_l^b)-F_{l+1}(h_l^fp)||^2 /
-                  (||F_{l+1}(h_l^fp)-h_l^fp||^2 + eps)
-
-    IMPORTANT: the current manuscript names p_l,b,t but does not print its
-    equation. If your experimental code used a different normalization, modify
-    `p` below and add that exact equation to the paper.
-    """
+    
     model.eval()
     blocks = get_transformer_blocks(model)
     cap = _capture_block_inputs(model, model_inputs)
     s0 = int(skip_first_tokens)
 
     def flat(x: torch.Tensor) -> torch.Tensor:
-        # x: [batch, seq] -> drop leading positions, flatten, move to CPU fp32
+       
         return x[..., s0:].reshape(-1).float().cpu()
 
     out: Dict[Tuple[int, int], Tuple[torch.Tensor, Optional[torch.Tensor]]] = {}
@@ -141,8 +121,7 @@ def trps_token_stats(
             if has_next:
                 n_args, n_kwargs, _ = cap[l + 1]
                 next_block = blocks[l + 1]
-                # Equals fp_out[l+1] up to kernel nondeterminism; recomputed
-                # with the same call path as h_next_q so the two are comparable.
+            
                 h_next_fp = _call_block_with_hidden(next_block, n_args, n_kwargs, h_fp)
             for bits in bits_set:
                 with fake_quantized_block(block, bits, group_size):
@@ -158,15 +137,7 @@ def trps_token_stats(
 
 
 class TRPSAccumulator:
-    """Pools token-level distortions across calibration samples.
-
-    S_TRPS(l,b) = E_t[d] + lambda_tail * CVaR_tau(d) + lambda_prop * E_t[p]
-
-    where the expectation and the CVaR run over *all* calibration tokens.
-    d values are kept (needed for the exact CVaR); p only needs a running sum.
-    Memory: ~4 bytes x tokens x blocks x |bits|, e.g. ~400 MB for
-    500 x 2048 tokens on a 32-block model.
-    """
+   
 
     def __init__(self, tau: float = 0.10, lambda_tail: float = 0.25, lambda_prop: float = 0.25):
         self.tau = tau
@@ -213,24 +184,14 @@ def calibrate_trps_batch(
     eps: float = 1e-8,
     skip_first_tokens: int = 0,
 ) -> List[TRPSRecord]:
-    """TRPS for a single batch (all tokens of this batch pooled).
-
-    For a full calibration set, do NOT average the outputs of this function
-    across batches: use `trps_token_stats` + `TRPSAccumulator` instead, so the
-    CVaR is taken over the worst tau fraction of all calibration tokens.
-    """
+   
     acc = TRPSAccumulator(tau, lambda_tail, lambda_prop)
     acc.add(trps_token_stats(model, model_inputs, bits_set, group_size, eps, skip_first_tokens))
     return acc.finalize()
 
 
 def aggregate_trps(records: Iterable[TRPSRecord]) -> List[TRPSRecord]:
-    """Average repeated batch records for every (block,bits) pair.
-
-    Deprecated for calibration: averaging per-batch CVaRs is not the CVaR of
-    the pooled calibration tokens, and it weights short batches as much as
-    long ones. Kept only for backward compatibility; use TRPSAccumulator.
-    """
+   
     acc: Dict[tuple[int, int], list[TRPSRecord]] = {}
     for r in records:
         acc.setdefault((r.block, r.bits), []).append(r)
