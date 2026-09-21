@@ -8,9 +8,9 @@ from .affine import QuantizedTensor
 
 @dataclass
 class PackedWeight:
-    packed: torch.Tensor     # uint32 [out, words_per_row]
-    scales: torch.Tensor     # fp16/bf16/fp32 [out, groups]
-    zeros: torch.Tensor      # fp16/bf16/fp32 [out, groups]
+    packed: torch.Tensor     
+    scales: torch.Tensor     
+    zeros: torch.Tensor      
     bits: int
     group_size: int
     out_features: int
@@ -42,7 +42,6 @@ def pack_codes(q: torch.Tensor, bits: int) -> torch.Tensor:
     packed = torch.zeros((out_features, words), dtype=torch.int64)
     mask = (1 << bits) - 1
 
-    # CPU reference packer. Packing is offline, so clarity is preferred.
     for r in range(out_features):
         for k in range(in_features):
             v = int(q_cpu[r, k].item()) & mask
@@ -54,8 +53,7 @@ def pack_codes(q: torch.Tensor, bits: int) -> torch.Tensor:
             if spill > 0:
                 packed[r, wi + 1] |= v >> (bits - spill)
 
-    # torch has no uint32 arithmetic on all devices; int64 storage here is
-    # converted to int32 with identical 32-bit bit-patterns for CUDA.
+ 
     packed = (packed & 0xFFFFFFFF).to(torch.int64)
     signed = torch.where(packed >= (1 << 31), packed - (1 << 32), packed).to(torch.int32)
     return signed
