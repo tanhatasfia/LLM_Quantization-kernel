@@ -22,14 +22,7 @@ def solve_mckp_dp(
     energy_budget: float,
     resolution_j: float = 0.1,
 ) -> AllocationResult:
-    """Exact-over-discretized-cost multi-choice knapsack solver.
-
-    Maximizes sum_l v[l,b] subject to
-        E0 + sum_l c[l,b_l] <= E_budget - delta.
-
-    Per-block ridge costs are shifted to nonnegative values before DP; the
-    shift is absorbed into E0 and therefore leaves predicted energies intact.
-    """
+    
     s = surrogate.shifted_nonnegative()
     cap_j = energy_budget - s.delta - s.intercept
     if cap_j < -1e-9:
@@ -39,7 +32,6 @@ def solve_mckp_dp(
     cap = max(0, int(math.floor(cap_j / resolution_j + 1e-9)))
     n = s.n_blocks
 
-    # sparse DP: cost_bin -> (value, bitmap_prefix)
     dp = {0: (0.0, [])}
     for l in range(n):
         nxt = {}
@@ -55,7 +47,7 @@ def solve_mckp_dp(
                     nxt[nu] = (nv, path + [b])
         if not nxt:
             raise ValueError(f"No feasible MCKP choice after block {l}")
-        # Pareto prune dominated states: increasing cost must improve value.
+  
         best = -float("inf")
         pruned = {}
         for cbin in sorted(nxt):
