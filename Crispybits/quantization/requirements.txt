@@ -1,0 +1,6 @@
+torch>=2.3
+transformers>=4.44
+datasets>=2.20
+numpy>=1.26
+nvidia-ml-py>=12.0
+pytest>=8.0
