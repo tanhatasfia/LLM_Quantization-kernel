@@ -32,17 +32,12 @@ class NVMLPowerSampler(PowerSampler):
         self.handle = pynvml.nvmlDeviceGetHandleByIndex(device_index)
 
     def read_watts(self) -> float:
-        # NVML returns milliwatts on supported NVIDIA GPUs.
+        
         return float(self.nvml.nvmlDeviceGetPowerUsage(self.handle)) / 1000.0
 
 
 class JetsonSysfsPowerSampler(PowerSampler):
-    """Jetson INA3221 sysfs sampler.
-
-    Supply `power_path` explicitly for the total module power rail exposed by
-    your JetPack version. Common files report microwatts or milliwatts; set
-    scale_to_watts accordingly.
-    """
+   
     def __init__(self, power_path: str, scale_to_watts: float = 1e-3):
         self.path = Path(power_path)
         self.scale = scale_to_watts
@@ -81,7 +76,7 @@ def integrate_energy(
     stop.set()
     th.join()
 
-    # Add boundary samples for better request-window integration.
+
     if not samples:
         p = sampler.read_watts()
         samples = [(t0, p), (t1, p)]
