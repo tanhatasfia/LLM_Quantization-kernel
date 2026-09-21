@@ -11,11 +11,11 @@ from .packing import pack_quantized
 
 
 def get_transformer_blocks(model: nn.Module) -> List[nn.Module]:
-    """Return decoder blocks for Hugging Face LLaMA-family or OPT models."""
+   
     candidates = [
-        ("model", "layers"),               # LlamaForCausalLM.model.layers
-        ("model", "decoder", "layers"),   # OPTForCausalLM.model.decoder.layers
-        ("transformer", "h"),              # fallback GPT-like
+        ("model", "layers"),               
+        ("model", "decoder", "layers"),   
+        ("transformer", "h"),              
     ]
     for path in candidates:
         obj = model
