@@ -3,7 +3,7 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 setup(
     name="crispybits_kernels",
-    version="0.1.0",
+    version="0.3.0",
     packages=["crispybits_kernels"],
     ext_modules=[
         CUDAExtension(
@@ -12,12 +12,12 @@ setup(
                 "csrc/bindings.cpp",
                 "csrc/packed_gemv.cu",
                 "csrc/packed_gemm.cu",
-                "csrc/fused_gate_up.cu",
-                "csrc/fused_qkv.cu",
             ],
+            depends=["csrc/bitpack.cuh", "csrc/common.cuh", "csrc/host_utils.h"],
             extra_compile_args={
-                "cxx": ["-O3"],
-                "nvcc": ["-O3", "--use_fast_math", "-lineinfo"],
+                "cxx": ["-O3", "-std=c++17"],
+              
+                "nvcc": ["-O3", "-std=c++17", "-lineinfo"],
             },
         )
     ],

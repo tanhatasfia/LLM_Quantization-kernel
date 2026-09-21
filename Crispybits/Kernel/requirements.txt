@@ -1,2 +1,4 @@
 torch>=2.3
 pytest>=8.0
+# optional, for tests/test_integration.py
+# transformers>=4.48
