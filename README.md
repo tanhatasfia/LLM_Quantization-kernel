@@ -150,7 +150,7 @@ python scripts/bench_gemv.py \
 python scripts/bench_prefill.py --m 1024
 ```
 
-### Decode-Kernel Ablation
+
 
 
 
