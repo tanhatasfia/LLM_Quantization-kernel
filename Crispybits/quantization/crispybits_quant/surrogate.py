@@ -24,14 +24,7 @@ class EnergySurrogate:
         return self.intercept + sum(self.costs[(l, int(b))] for l, b in enumerate(bitmap))
 
     def shifted_nonnegative(self) -> "EnergySurrogate":
-        """Per-block cost shift preserving every predicted configuration energy.
-
-        Ridge coefficients can be negative. For MCKP/DP it is convenient to use
-        non-negative per-choice costs. For each block l:
-            m_l = min_b c_l,b
-            c'_l,b = c_l,b - m_l
-            E0' = E0 + sum_l m_l
-        """
+      
         costs = dict(self.costs)
         intercept = self.intercept
         for l in range(self.n_blocks):
@@ -64,11 +57,7 @@ class EnergySurrogate:
 
 
 def one_hot_bitmaps(bitmaps: np.ndarray, n_blocks: int) -> np.ndarray:
-    """One-hot encode each block/bit choice using W2 as the reference level.
-
-    Columns are [(l,3),(l,4)] for all blocks. This removes exact collinearity
-    between a global intercept and three one-hot indicators per block.
-    """
+    
     X = np.zeros((len(bitmaps), n_blocks * 2), dtype=np.float64)
     for i, row in enumerate(bitmaps):
         for l, b in enumerate(row):
@@ -109,12 +98,7 @@ def fit_energy_surrogate(
     seed: int = 0,
     split=(0.70, 0.15, 0.15),
 ):
-    """Fit the additive ridge energy model and validation-derived safety margin.
-
-    Paper protocol: 70/15/15 train/validation/test. Delta is the 95th quantile
-    of (E_meas - E_hat) on validation, clipped at zero so the safety margin is
-    never negative.
-    """
+    
     bitmaps = np.asarray(bitmaps, dtype=np.int64)
     energies = np.asarray(energies, dtype=np.float64)
     if bitmaps.ndim != 2 or energies.ndim != 1 or len(bitmaps) != len(energies):
